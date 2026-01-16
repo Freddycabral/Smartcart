@@ -1,12 +1,10 @@
 export default async function handler(req, res) {
-    // Configuração de segurança (CORS)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
-
+    
     const apiKey = process.env.OPENAI_API_KEY;
 
     try {
@@ -26,7 +24,7 @@ export default async function handler(req, res) {
                 messages: [
                     { 
                         role: 'system', 
-                        content: 'Retorne APENAS um array JSON de produtos: [{"name":"item","price":0,"quantity":1,"category":"outros"}]' 
+                        content: 'Retorne APENAS um array JSON: [{"name":"item","price":0,"quantity":1,"category":"alimentos"}]' 
                     },
                     { role: 'user', content: userContent }
                 ]
@@ -34,14 +32,21 @@ export default async function handler(req, res) {
         });
 
         const data = await response.json();
-        
-        // CORREÇÃO CRÍTICA: Transforma o texto da OpenAI em uma lista real para o index.html
+
+        // VERIFICAÇÃO DE ERRO DA OPENAI
+        if (data.error) {
+            return res.status(400).json({ error: `Erro da OpenAI: ${data.error.message}` });
+        }
+
+        if (!data.choices || !data.choices[0]) {
+            return res.status(500).json({ error: 'Resposta da IA veio vazia.' });
+        }
+
         const rawContent = data.choices[0].message.content;
-        const itemsArray = JSON.parse(rawContent);
-        
-        res.status(200).json(itemsArray);
+        res.status(200).json(JSON.parse(rawContent));
+
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Erro ao processar dados da IA' });
+        console.error('Erro detalhado:', error);
+        res.status(500).json({ error: 'Falha no servidor: ' + error.message });
     }
 }
