@@ -33,20 +33,15 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
-        // VERIFICAÇÃO DE ERRO DA OPENAI
+        // Se a OpenAI retornar erro, o código agora nos avisa
         if (data.error) {
-            return res.status(400).json({ error: `Erro da OpenAI: ${data.error.message}` });
-        }
-
-        if (!data.choices || !data.choices[0]) {
-            return res.status(500).json({ error: 'Resposta da IA veio vazia.' });
+            return res.status(400).json({ error: data.error.message });
         }
 
         const rawContent = data.choices[0].message.content;
         res.status(200).json(JSON.parse(rawContent));
 
     } catch (error) {
-        console.error('Erro detalhado:', error);
         res.status(500).json({ error: 'Falha no servidor: ' + error.message });
     }
 }
