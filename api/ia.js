@@ -1,6 +1,4 @@
-// api/ia.js
 export default async function handler(req, res) {
-    // Configuração de CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -9,8 +7,6 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
 
     const { text, image } = req.body;
-    
-    // AQUI ESTÁ O SEGREDO: O código chama a chave do sistema, não do texto
     const apiKey = process.env.OPENAI_API_KEY;
 
     try {
@@ -27,7 +23,10 @@ export default async function handler(req, res) {
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
                 messages: [
-                    { role: 'system', content: 'Retorne um JSON array: [{"name":"produto","price":0,"quantity":1,"category":"alimentos"}]' },
+                    { 
+                        role: 'system', 
+                        content: 'Retorne um objeto JSON com uma chave "items" contendo o array: {"items": [{"name":"produto","price":0.0,"quantity":1,"category":"alimentos"}]}' 
+                    },
                     { role: 'user', content: userContent }
                 ],
                 response_format: { type: "json_object" }
@@ -35,7 +34,10 @@ export default async function handler(req, res) {
         });
 
         const data = await response.json();
-        res.status(200).json(data.choices[0].message.content);
+        const content = JSON.parse(data.choices[0].message.content);
+        
+        // Enviamos apenas a lista de itens para o frontend
+        res.status(200).json(content.items || []);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
